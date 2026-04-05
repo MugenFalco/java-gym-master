@@ -18,54 +18,62 @@ public class Timetable {
         TimeOfDay time = trainingSession.getTimeOfDay();
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule = timetable.get(day);
 
-        if (!daySchedule.containsKey(time)) {
-            daySchedule.put(time, new ArrayList<>());
+        if (daySchedule != null) {
+            if (!daySchedule.containsKey(time)) {
+                daySchedule.put(time, new ArrayList<>());
+            }
+            daySchedule.get(time).add(trainingSession);
         }
-        daySchedule.get(time).add(trainingSession);
     }
-
     public List<TrainingSession> getTrainingSessionsForDay(DayOfWeek dayOfWeek) {
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule = timetable.get(dayOfWeek);
         //как реализовать, тоже непонятно, но сложность должна быть О(1)
         List<TrainingSession> result = new ArrayList<>();
-
-        for (List<TrainingSession> sessions : daySchedule.values()) {
-            result.addAll(sessions);
+        if (daySchedule != null) {
+            for (List<TrainingSession> sessions : daySchedule.values()) {
+                result.addAll(sessions);
+            }
         }
-        return result;
+            return result;
     }
 
     public List<TrainingSession> getTrainingSessionsForDayAndTime(DayOfWeek dayOfWeek, TimeOfDay timeOfDay) {
         //как реализовать, тоже непонятно, но сложность должна быть О(1)
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule = timetable.get(dayOfWeek);
 
-        if (daySchedule.containsKey(timeOfDay)) {
+        if (daySchedule != null && daySchedule.containsKey(timeOfDay)) {
             return new ArrayList<>(daySchedule.get(timeOfDay));
         } else {
             return new ArrayList<>();
         }
     }
 
-    public Map<Coach, Integer> getCountByCoaches() {
+    public List<CounterOfTrainings> getCountByCoaches() {
         Map<Coach, Integer> coachCounts = new HashMap<>();
 
         for (TreeMap<TimeOfDay, List<TrainingSession>> daySchedule : timetable.values()) {
-            for (List<TrainingSession> sessionsAtTime : daySchedule.values()) {
-                for (TrainingSession session : sessionsAtTime) {
-                    Coach coach = session.getCoach();
-                    coachCounts.put(coach, coachCounts.getOrDefault(coach, 0) + 1);
+            if (daySchedule != null) {
+                for (List<TrainingSession> sessionsAtTime : daySchedule.values()) {
+                    if (sessionsAtTime != null) {
+                        for (TrainingSession session : sessionsAtTime) {
+                            if (session != null && session.getCoach() != null) {
+                                Coach coach = session.getCoach();
+                                coachCounts.put(coach, coachCounts.getOrDefault(coach, 0) + 1);
+                            }
+                        }
+                    }
                 }
             }
         }
 
-        List<Map.Entry<Coach, Integer>> sortedEntries = new ArrayList<>(coachCounts.entrySet());
-        sortedEntries.sort(Map.Entry.<Coach, Integer>comparingByValue().reversed());
-
-        Map<Coach, Integer> sortedResult = new LinkedHashMap<>();
-        for (Map.Entry<Coach, Integer> entry : sortedEntries) {
-            sortedResult.put(entry.getKey(), entry.getValue());
+        List<CounterOfTrainings> statistics = new ArrayList<>();
+        for (Map.Entry<Coach, Integer> entry : coachCounts.entrySet()) {
+            statistics.add(new CounterOfTrainings(entry.getKey(), entry.getValue()));
         }
 
-        return sortedResult;
+        statistics.sort((a, b) -> Integer.compare(b.getNumberOfTrainings(), a.getNumberOfTrainings()));
+
+        return statistics;
     }
 }
+
