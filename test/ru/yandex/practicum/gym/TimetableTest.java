@@ -21,7 +21,7 @@ public class TimetableTest {
         //Проверить, что за понедельник вернулось одно занятие
         List<TrainingSession> mondaySessions = timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY);
         Assertions.assertEquals(1, mondaySessions.size());
-        Assertions.assertEquals(singleTrainingSession, mondaySessions.get(0));
+        Assertions.assertEquals(singleTrainingSession, mondaySessions.getFirst());
 
         //Проверить, что за вторник не вернулось занятий
         List<TrainingSession> tuesdaySessions = timetable.getTrainingSessionsForDay(DayOfWeek.TUESDAY);
@@ -55,7 +55,7 @@ public class TimetableTest {
         // Проверить, что за понедельник вернулось одно занятие
         List<TrainingSession> mondaySessions = timetable.getTrainingSessionsForDay(DayOfWeek.MONDAY);
         Assertions.assertEquals(1, mondaySessions.size());
-        Assertions.assertEquals(mondayChildTrainingSession, mondaySessions.get(0));
+        Assertions.assertEquals(mondayChildTrainingSession, mondaySessions.getFirst());
 
         // Проверить, что за четверг вернулось два занятия в правильном порядке: сначала в 13:00, потом в 20:00
         List<TrainingSession> thursdaySessions = timetable.getTrainingSessionsForDay(DayOfWeek.THURSDAY);
@@ -83,7 +83,7 @@ public class TimetableTest {
         List<TrainingSession> sessionsAt13 = timetable.getTrainingSessionsForDayAndTime(
                 DayOfWeek.MONDAY, new TimeOfDay(13, 0));
         Assertions.assertEquals(1, sessionsAt13.size());
-        Assertions.assertEquals(singleTrainingSession, sessionsAt13.get(0));
+        Assertions.assertEquals(singleTrainingSession, sessionsAt13.getFirst());
 
         //Проверить, что за понедельник в 14:00 не вернулось занятий
         List<TrainingSession> sessionsAt14 = timetable.getTrainingSessionsForDayAndTime(
@@ -106,11 +106,12 @@ public class TimetableTest {
         timetable.addNewTrainingSession(new TrainingSession(group, coach,
                 DayOfWeek.FRIDAY, new TimeOfDay(10, 0)));
 
-        Map<Coach, Integer> result = timetable.getCountByCoaches();
+        List<CounterOfTrainings> result = timetable.getCountByCoaches();
 
         // Проверяем, что вернулась одна запись с 3 тренировками
         Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals(3, result.get(coach));
+        Assertions.assertEquals(coach, result.getFirst().getCoach());
+        Assertions.assertEquals(3, result.getFirst().getNumberOfTrainings());
     }
 
     @Test
@@ -140,15 +141,21 @@ public class TimetableTest {
         timetable.addNewTrainingSession(new TrainingSession(group, coach3,
                 DayOfWeek.FRIDAY, new TimeOfDay(12, 0)));
 
-        Map<Coach, Integer> result = timetable.getCountByCoaches();
+        List<CounterOfTrainings> result = timetable.getCountByCoaches();
 
         // Проверяем количество записей
         Assertions.assertEquals(3, result.size());
 
+        // Находим нужных тренеров в списке
+        Map<Coach, Integer> resultMap = new HashMap<>();
+        for (CounterOfTrainings counter : result) {
+            resultMap.put(counter.getCoach(), counter.getNumberOfTrainings());
+        }
+
         // Проверяем количество тренировок для каждого тренера
-        Assertions.assertEquals(2, result.get(coach1));
-        Assertions.assertEquals(3, result.get(coach2));
-        Assertions.assertEquals(1, result.get(coach3));
+        Assertions.assertEquals(2, resultMap.get(coach1));
+        Assertions.assertEquals(3, resultMap.get(coach2));
+        Assertions.assertEquals(1, resultMap.get(coach3));
     }
 
     @Test
@@ -176,19 +183,17 @@ public class TimetableTest {
         timetable.addNewTrainingSession(new TrainingSession(group, coachLeast,
                 DayOfWeek.MONDAY, new TimeOfDay(12, 0)));
 
-        Map<Coach, Integer> result = timetable.getCountByCoaches();
+        List<CounterOfTrainings> result = timetable.getCountByCoaches();
 
         // Проверяем, что результат отсортирован по убыванию количества тренировок
-        List<Integer> counts = new ArrayList<>(result.values());
-        Assertions.assertEquals(5, counts.get(0));
-        Assertions.assertEquals(3, counts.get(1));
-        Assertions.assertEquals(1, counts.get(2));
+        Assertions.assertEquals(5, result.get(0).getNumberOfTrainings());
+        Assertions.assertEquals(3, result.get(1).getNumberOfTrainings());
+        Assertions.assertEquals(1, result.get(2).getNumberOfTrainings());
 
         // Проверяем порядок тренеров
-        List<Coach> coaches = new ArrayList<>(result.keySet());
-        Assertions.assertEquals(coachMost, coaches.get(0));
-        Assertions.assertEquals(coachMedium, coaches.get(1));
-        Assertions.assertEquals(coachLeast, coaches.get(2));
+        Assertions.assertEquals(coachMost, result.get(0).getCoach());
+        Assertions.assertEquals(coachMedium, result.get(1).getCoach());
+        Assertions.assertEquals(coachLeast, result.get(2).getCoach());
     }
 
     @Test
@@ -208,29 +213,34 @@ public class TimetableTest {
                     DayOfWeek.WEDNESDAY, new TimeOfDay(10, 0)));
         }
 
-        Map<Coach, Integer> result = timetable.getCountByCoaches();
+        List<CounterOfTrainings> result = timetable.getCountByCoaches();
 
         // Проверяем количество записей
         Assertions.assertEquals(3, result.size());
 
         // Проверяем, что у всех одинаковое количество тренировок
-        for (Integer count : result.values()) {
-            Assertions.assertEquals(2, count);
+        for (CounterOfTrainings counter : result) {
+            Assertions.assertEquals(2, counter.getNumberOfTrainings());
         }
 
         // Проверяем, что все тренеры присутствуют
-        Assertions.assertTrue(result.containsKey(coach1));
-        Assertions.assertTrue(result.containsKey(coach2));
-        Assertions.assertTrue(result.containsKey(coach3));
+        Set<Coach> coaches = new HashSet<>();
+        for (CounterOfTrainings counter : result) {
+            coaches.add(counter.getCoach());
+        }
+
+        Assertions.assertTrue(coaches.contains(coach1));
+        Assertions.assertTrue(coaches.contains(coach2));
+        Assertions.assertTrue(coaches.contains(coach3));
     }
 
     @Test
     void testGetCountByCoachesEmptyTimetable() {
         Timetable timetable = new Timetable();
 
-        Map<Coach, Integer> result = timetable.getCountByCoaches();
+        List<CounterOfTrainings> result = timetable.getCountByCoaches();
 
-        // Проверяем, что вернулась пустая карта
+        // Проверяем, что вернулся пустой список
         Assertions.assertTrue(result.isEmpty());
     }
 
@@ -241,7 +251,6 @@ public class TimetableTest {
         Coach coach = new Coach("Васильев", "Николай", "Сергеевич");
 
         // Добавляем несколько тренировок одного тренера в один день и время
-        // В реальном расписании так может быть, если тренировки разных групп
         Group group1 = new Group("Акробатика для детей 7-9 лет", Age.CHILD, 60);
         Group group2 = new Group("Акробатика для детей 10-12 лет", Age.CHILD, 60);
 
@@ -252,10 +261,11 @@ public class TimetableTest {
         timetable.addNewTrainingSession(new TrainingSession(group1, coach,
                 DayOfWeek.WEDNESDAY, new TimeOfDay(10, 0)));
 
-        Map<Coach, Integer> result = timetable.getCountByCoaches();
+        List<CounterOfTrainings> result = timetable.getCountByCoaches();
 
         // Проверяем, что все тренировки посчитались корректно
         Assertions.assertEquals(1, result.size());
-        Assertions.assertEquals(3, result.get(coach));
+        Assertions.assertEquals(coach, result.getFirst().getCoach());
+        Assertions.assertEquals(3, result.getFirst().getNumberOfTrainings());
     }
 }
