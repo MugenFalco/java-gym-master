@@ -25,7 +25,7 @@ public class Timetable {
             daySchedule.get(time).add(trainingSession);
         }
     }
-    
+
     public List<TrainingSession> getTrainingSessionsForDay(DayOfWeek dayOfWeek) {
         TreeMap<TimeOfDay, List<TrainingSession>> daySchedule = timetable.get(dayOfWeek);
         //как реализовать, тоже непонятно, но сложность должна быть О(1)
@@ -77,4 +77,3 @@ public class Timetable {
         return statistics;
     }
 }
-
